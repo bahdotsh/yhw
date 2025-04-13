@@ -16,8 +16,9 @@ pub fn draw(frame: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
-            Constraint::Min(0),
+            Constraint::Length(3),  // Title and tabs
+            Constraint::Length(3),  // Status bar with sort/filter info
+            Constraint::Min(0),     // Main content
         ].as_ref())
         .split(frame.size());
     
@@ -42,18 +43,96 @@ pub fn draw(frame: &mut Frame, app: &App) {
     
     frame.render_widget(tabs, chunks[0]);
     
+    // Draw status bar with sort/filter info
+    draw_status_bar(frame, app, chunks[1]);
+    
     // Draw content based on selected tab
     match app.current_tab {
-        0 => draw_overview_tab(frame, app, chunks[1]),
-        1 => draw_details_tab(frame, app, chunks[1]),
-        2 => draw_removable_tab(frame, app, chunks[1]),
+        0 => draw_overview_tab(frame, app, chunks[2]),
+        1 => draw_details_tab(frame, app, chunks[2]),
+        2 => draw_removable_tab(frame, app, chunks[2]),
         _ => {}
+    }
+    
+    // Draw search bar if in search mode
+    if app.is_searching {
+        draw_search_bar(frame, app);
     }
     
     // Draw help popup if needed
     if app.show_help {
         draw_help(frame);
     }
+}
+
+/// Draw the status bar with sorting and filtering information
+fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let mut status_text = Vec::new();
+    
+    // Add the sort information
+    status_text.push(Span::styled("Sort: ", Style::default().fg(Color::Blue)));
+    status_text.push(Span::styled(
+        app.sort_option.as_str(), 
+        Style::default().fg(Color::Yellow)
+    ));
+    
+    // Add the sort direction
+    status_text.push(Span::raw(" "));
+    status_text.push(Span::styled(
+        if app.sort_reverse { "↑" } else { "↓" },
+        Style::default().fg(Color::Yellow)
+    ));
+    
+    // Add separator
+    status_text.push(Span::raw(" | "));
+    
+    // Add the filter information
+    status_text.push(Span::styled("Filter: ", Style::default().fg(Color::Blue)));
+    status_text.push(Span::styled(
+        app.filter_option.as_str(),
+        Style::default().fg(Color::Yellow)
+    ));
+    
+    // Add search query if applicable
+    if !app.search_query.is_empty() {
+        status_text.push(Span::raw(" | "));
+        status_text.push(Span::styled("Search: ", Style::default().fg(Color::Blue)));
+        status_text.push(Span::styled(
+            &app.search_query,
+            Style::default().fg(Color::Yellow)
+        ));
+    }
+    
+    // Add controls hint
+    status_text.push(Span::raw(" | "));
+    status_text.push(Span::styled("(s)ort", Style::default().fg(Color::Blue)));
+    status_text.push(Span::raw(" | "));
+    status_text.push(Span::styled("(r)everse", Style::default().fg(Color::Blue)));
+    status_text.push(Span::raw(" | "));
+    status_text.push(Span::styled("(f)ilter", Style::default().fg(Color::Blue)));
+    status_text.push(Span::raw(" | "));
+    status_text.push(Span::styled("(/)search", Style::default().fg(Color::Blue)));
+    status_text.push(Span::raw(" | "));
+    status_text.push(Span::styled("(?)help", Style::default().fg(Color::Blue)));
+    
+    let status = Paragraph::new(Line::from(status_text))
+        .block(Block::default().borders(Borders::ALL).title("Status"));
+    
+    frame.render_widget(status, area);
+}
+
+/// Draw search bar popup
+fn draw_search_bar(frame: &mut Frame, app: &App) {
+    let area = centered_rect(50, 20, frame.size());
+    
+    let search_text = format!("Search: {}", app.search_query);
+    let search_bar = Paragraph::new(search_text)
+        .block(Block::default().borders(Borders::ALL).title("Search Dependencies"))
+        .style(Style::default().fg(Color::White));
+    
+    // Clear the area first
+    frame.render_widget(Clear, area);
+    frame.render_widget(search_bar, area);
 }
 
 /// Draw the overview tab
@@ -84,9 +163,22 @@ fn draw_details_tab(frame: &mut Frame, app: &App, area: Rect) {
 fn draw_removable_tab(frame: &mut Frame, app: &App, area: Rect) {
     if let Some(analysis) = &app.analysis {
         // Use the calculated removable dependencies list
-        let items: Vec<ListItem> = if !analysis.metrics.removable_dependencies.is_empty() {
-            analysis.metrics.removable_dependencies.iter()
-                .map(|dep_name| {
+        let filtered_indices = app.filtered_dependencies();
+        
+        // Filter for removable dependencies
+        let removable_indices: Vec<_> = filtered_indices.into_iter()
+            .filter(|&i| {
+                let dep_name = &analysis.dependencies[i].name;
+                analysis.metrics.removable_dependencies.contains(dep_name)
+            })
+            .collect();
+        
+        let items: Vec<ListItem> = if !removable_indices.is_empty() {
+            removable_indices.iter()
+                .map(|&i| {
+                    let dep = &analysis.dependencies[i];
+                    let dep_name = &dep.name;
+                    
                     let reason = if !analysis.metrics.is_used.get(dep_name).unwrap_or(&true) {
                         "Dependency is not used in the codebase"
                     } else if let Some(true) = analysis.metrics.is_partially_used.get(dep_name) {
@@ -101,19 +193,16 @@ fn draw_removable_tab(frame: &mut Frame, app: &App, area: Rect) {
                     };
                     
                     // Get more details about the dependency
-                    let dep_info = analysis.dependencies.iter()
-                        .find(|d| &d.name == dep_name)
-                        .map(|d| {
-                            let dep_type = match d.dependency_type {
-                                DependencyType::Normal => "normal",
-                                DependencyType::Development => "dev",
-                                DependencyType::Build => "build",
-                            };
-                            
-                            let optional = if d.optional { ", optional" } else { "" };
-                            format!("{} dependency{}", dep_type, optional)
-                        })
-                        .unwrap_or_else(|| "Unknown dependency type".to_string());
+                    let dep_info = {
+                        let dep_type = match dep.dependency_type {
+                            DependencyType::Normal => "normal",
+                            DependencyType::Development => "dev",
+                            DependencyType::Build => "build",
+                        };
+                        
+                        let optional = if dep.optional { ", optional" } else { "" };
+                        format!("{} dependency{}", dep_type, optional)
+                    };
                     
                     // Get usage count
                     let usage_count = analysis.metrics.usage_count.get(dep_name).unwrap_or(&0);
@@ -166,9 +255,14 @@ fn draw_help(frame: &mut Frame) {
         Line::from("Tab: Next tab"),
         Line::from("Shift+Tab: Previous tab"),
         Line::from("Up/Down, j/k: Navigate dependencies"),
+        Line::from("Left/Right, h/l: Navigate views in details tab"),
+        Line::from("s: Cycle sort options"),
+        Line::from("r: Reverse sort order"),
+        Line::from("f: Cycle filter options"),
+        Line::from("/: Search dependencies"),
         Line::from("?: Toggle help"),
         Line::from(""),
-        Line::from("Press any key to close help"),
+        Line::from("Press Esc to close help or search"),
     ];
     
     let help = Paragraph::new(help_text)

@@ -256,7 +256,13 @@ src/
   - [x] Calculate importance scores
   - [x] Track which specific items from a dependency are used
   - [x] Integrate with dependency graph visualization
-- [ ] Phase 3 completed
+- [x] Phase 3 completed
+  - [x] Set up basic TUI structure with ratatui
+  - [x] Implement overview view of all dependencies
+  - [x] Create detailed view for individual dependencies
+  - [x] Add navigation between views
+  - [x] Implement sorting and filtering
+  - [x] Design and implement usage visualizations
 - [ ] Phase 4 completed
 - [ ] Version 1.0.0 released
 
@@ -275,8 +281,12 @@ src/
 - [x] Implement advanced code analysis
 - [x] Integrate dependency graph visualization
 - [x] Enhance TUI with detailed usage information
-- [ ] Implement TUI navigation between views
+- [x] Implement TUI navigation between views
+- [x] Implement sorting and filtering in TUI
 - [ ] Add comprehensive documentation
+- [ ] Add export to different formats
+- [ ] Support for other ecosystems
+- [ ] Add configuration options
 
 ## Notes and Considerations
 

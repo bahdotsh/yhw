@@ -157,15 +157,15 @@ fn usage_gauge_color(ratio: f64) -> Color {
 
 /// Render the list of dependencies
 fn render_dependencies_list(frame: &mut Frame, app: &App, analysis: &AnalysisResult, area: Rect) {
-    let deps: Vec<ListItem> = analysis.dependencies
+    let filtered_indices = app.filtered_dependencies();
+    
+    let deps: Vec<ListItem> = filtered_indices
         .iter()
         .enumerate()
-        .map(|(i, dep)| {
-            let style = if i == app.selected_dependency {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
+        .map(|(list_idx, &dep_idx)| {
+            let dep = &analysis.dependencies[dep_idx];
+            
+            let is_selected = list_idx == app.selected_dependency;
             
             let used = analysis.metrics.is_used.get(&dep.name).unwrap_or(&false);
             let importance = analysis.metrics.importance_scores.get(&dep.name).unwrap_or(&0.0);
@@ -198,20 +198,21 @@ fn render_dependencies_list(frame: &mut Frame, app: &App, analysis: &AnalysisRes
                 Span::styled(&dep.name, name_style),
                 Span::raw(type_indicator),
                 Span::styled(removable_indicator, Style::default().fg(Color::Red)),
-                Span::raw(" "),
-                Span::styled(format!("({:.2})", importance), Style::default().fg(Color::Gray))
-            ])).style(style)
+            ]))
         })
         .collect();
     
-    let deps_list = List::new(deps)
-        .block(Block::default().borders(Borders::ALL).title(format!("Dependencies ({})", analysis.dependencies.len())))
-        .highlight_style(Style::default().bg(Color::DarkGray))
+    // Create the list
+    let mut list_title = "Dependencies".to_string();
+    if filtered_indices.len() != analysis.dependencies.len() {
+        list_title = format!("Dependencies ({} of {} shown)", filtered_indices.len(), analysis.dependencies.len());
+    }
+    
+    let list = List::new(deps)
+        .block(Block::default().borders(Borders::ALL).title(list_title))
+        .style(Style::default().fg(Color::White))
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Yellow))
         .highlight_symbol("> ");
     
-    // Create a mutable list state based on selected dependency
-    let mut list_state = ratatui::widgets::ListState::default();
-    list_state.select(Some(app.selected_dependency));
-    
-    frame.render_stateful_widget(deps_list, area, &mut list_state);
+    frame.render_widget(list, area);
 } 
