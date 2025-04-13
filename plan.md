@@ -248,7 +248,14 @@ src/
   - [x] File system traversal
   - [x] Basic Rust code parsing for imports 
   - [x] Simple dependency usage detection
-- [ ] Phase 2 completed
+- [x] Phase 2 completed
+  - [x] Implement detailed usage tracking
+  - [x] Add metrics calculation
+  - [x] Identify unused dependencies
+  - [x] Detect partially used dependencies
+  - [x] Calculate importance scores
+  - [x] Track which specific items from a dependency are used
+  - [x] Integrate with dependency graph visualization
 - [ ] Phase 3 completed
 - [ ] Phase 4 completed
 - [ ] Version 1.0.0 released
@@ -264,6 +271,12 @@ src/
 - [x] Fix linter errors in existing code
 - [x] Implement simple TUI with ratatui
 - [x] Add tests for core functionality
+- [x] Enhance metrics calculation
+- [x] Implement advanced code analysis
+- [x] Integrate dependency graph visualization
+- [x] Enhance TUI with detailed usage information
+- [ ] Implement TUI navigation between views
+- [ ] Add comprehensive documentation
 
 ## Notes and Considerations
 

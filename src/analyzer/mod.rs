@@ -1,5 +1,6 @@
 pub mod rust_analyzer;
 pub mod metrics;
+pub mod dependency_graph;
 
 use std::path::{Path, PathBuf};
 use anyhow::Result;
@@ -32,10 +33,14 @@ impl DependencyAnalyzer {
         // Calculate metrics
         let metrics = self.calculate_metrics(&dependencies, &usage_data)?;
         
+        // Generate dependency graph
+        let dependency_graph = self.generate_dependency_graph(&dependencies)?;
+        
         Ok(AnalysisResult {
             dependencies,
             usage_data,
             metrics,
+            dependency_graph,
         })
     }
     
@@ -64,6 +69,18 @@ impl DependencyAnalyzer {
                         usage_data: &DependencyUsageData) -> Result<DependencyMetrics> {
         metrics::calculate_metrics(dependencies, usage_data)
     }
+    
+    fn generate_dependency_graph(&self, dependencies: &[CargoDependency]) -> Result<dependency_graph::DependencyGraph> {
+        // Check for Cargo.lock file
+        let cargo_lock_path = self.project_path.join("Cargo.lock");
+        if cargo_lock_path.exists() {
+            // Use Cargo.lock to build a more accurate dependency graph
+            dependency_graph::DependencyGraph::from_cargo_lock(&cargo_lock_path, dependencies)
+        } else {
+            // Create a simple graph without relationship information
+            Ok(dependency_graph::DependencyGraph::new(dependencies))
+        }
+    }
 }
 
 /// Result of the dependency analysis
@@ -72,6 +89,7 @@ pub struct AnalysisResult {
     pub dependencies: Vec<CargoDependency>,
     pub usage_data: DependencyUsageData,
     pub metrics: DependencyMetrics,
+    pub dependency_graph: dependency_graph::DependencyGraph,
 }
 
 /// Data about how dependencies are used in the project
@@ -110,4 +128,12 @@ pub struct DependencyMetrics {
     pub is_used: std::collections::HashMap<String, bool>,
     /// Maps dependency name to how many files it's used in
     pub usage_count: std::collections::HashMap<String, usize>,
+    /// Maps dependency name to counts of different usage types
+    pub usage_types: std::collections::HashMap<String, std::collections::HashMap<UsageType, usize>>,
+    /// Maps dependency name to feature usage (feature name -> is used)
+    pub feature_usage: std::collections::HashMap<String, std::collections::HashMap<String, bool>>,
+    /// Maps dependency name to whether it's partially used
+    pub is_partially_used: std::collections::HashMap<String, bool>,
+    /// List of dependencies that could potentially be removed
+    pub removable_dependencies: Vec<String>,
 } 

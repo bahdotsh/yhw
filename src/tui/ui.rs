@@ -83,49 +83,67 @@ fn draw_details_tab(frame: &mut Frame, app: &App, area: Rect) {
 /// Draw the removable dependencies tab
 fn draw_removable_tab(frame: &mut Frame, app: &App, area: Rect) {
     if let Some(analysis) = &app.analysis {
-        // Detect removable dependencies
-        let mut removable_deps = Vec::new();
-        
-        for (dep_name, is_used) in &analysis.metrics.is_used {
-            if !is_used {
-                removable_deps.push((dep_name, "Dependency is not used in the codebase"));
-                continue;
-            }
-            
-            // Check importance score
-            if let Some(score) = analysis.metrics.importance_scores.get(dep_name) {
-                if *score < 0.1 {
-                    removable_deps.push((dep_name, "Dependency has very low usage"));
-                }
-            }
-            
-            // For development dependencies that are used in few files
-            if let Some(dep) = analysis.dependencies.iter().find(|d| &d.name == dep_name) {
-                if dep.dependency_type == DependencyType::Development && 
-                   analysis.metrics.usage_count.get(dep_name).unwrap_or(&0) < &2 {
-                    removable_deps.push((dep_name, "Dev dependency used in very few files"));
-                }
-            }
-        }
-        
-        // Create list items
-        let items: Vec<ListItem> = removable_deps.iter()
-            .map(|(name, reason)| {
-                ListItem::new(vec![
-                    Line::from(vec![
-                        Span::styled(name.as_str(), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))
-                    ]),
-                    Line::from(vec![
-                        Span::raw(format!("  Reason: {}", reason))
-                    ]),
-                ])
-            })
-            .collect();
+        // Use the calculated removable dependencies list
+        let items: Vec<ListItem> = if !analysis.metrics.removable_dependencies.is_empty() {
+            analysis.metrics.removable_dependencies.iter()
+                .map(|dep_name| {
+                    let reason = if !analysis.metrics.is_used.get(dep_name).unwrap_or(&true) {
+                        "Dependency is not used in the codebase"
+                    } else if let Some(true) = analysis.metrics.is_partially_used.get(dep_name) {
+                        "Dependency is only partially used (unused features)"
+                    } else {
+                        let score = analysis.metrics.importance_scores.get(dep_name).unwrap_or(&0.0);
+                        if *score < 0.1 {
+                            "Dependency has very low usage"
+                        } else {
+                            "Low overall importance to the project"
+                        }
+                    };
+                    
+                    // Get more details about the dependency
+                    let dep_info = analysis.dependencies.iter()
+                        .find(|d| &d.name == dep_name)
+                        .map(|d| {
+                            let dep_type = match d.dependency_type {
+                                DependencyType::Normal => "normal",
+                                DependencyType::Development => "dev",
+                                DependencyType::Build => "build",
+                            };
+                            
+                            let optional = if d.optional { ", optional" } else { "" };
+                            format!("{} dependency{}", dep_type, optional)
+                        })
+                        .unwrap_or_else(|| "Unknown dependency type".to_string());
+                    
+                    // Get usage count
+                    let usage_count = analysis.metrics.usage_count.get(dep_name).unwrap_or(&0);
+                    
+                    ListItem::new(vec![
+                        Line::from(vec![
+                            Span::styled(dep_name, Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))
+                        ]),
+                        Line::from(vec![
+                            Span::raw(format!("  Reason: {}", reason))
+                        ]),
+                        Line::from(vec![
+                            Span::raw(format!("  Type: {}", dep_info))
+                        ]),
+                        Line::from(vec![
+                            Span::raw(format!("  Used in {} file(s)", usage_count))
+                        ]),
+                    ])
+                })
+                .collect()
+        } else {
+            vec![ListItem::new("No dependencies identified as removable")]
+        };
         
         // Create the list
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL).title("Dependencies that might be removable"))
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(Color::White))
+            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+            .highlight_symbol("> ");
         
         frame.render_widget(list, area);
     } else {
