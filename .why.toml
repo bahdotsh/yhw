@@ -1,0 +1,27 @@
+[general]
+include_dev_dependencies = true
+include_build_dependencies = true
+max_search_depth = 5
+
+[analysis]
+removal_threshold = 0.1
+follow_symlinks = false
+exclude_patterns = [
+    "**/target/**",
+    "**/node_modules/**",
+    "**/.git/**",
+]
+
+[export]
+default_format = "Json"
+output_dir = "."
+
+[tui]
+use_unicode = true
+show_help_bar = true
+
+[tui.color_scheme]
+primary = "#268bd2"
+secondary = "#2aa198"
+background = "#073642"
+highlight = "#d33682"

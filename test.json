@@ -1,0 +1,213 @@
+{
+  "dependencies": [
+    {
+      "name": "anyhow",
+      "version": "1.0",
+      "usage_count": 12,
+      "importance_score": 1.0,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "clap",
+      "version": "4.4",
+      "usage_count": 2,
+      "importance_score": 0.132,
+      "removable": true,
+      "used_features": [],
+      "unused_features": [
+        "derive"
+      ]
+    },
+    {
+      "name": "crossterm",
+      "version": "0.27",
+      "usage_count": 2,
+      "importance_score": 0.272,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "csv",
+      "version": "1.3",
+      "usage_count": 1,
+      "importance_score": 0.0618,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "dirs",
+      "version": "5.0",
+      "usage_count": 1,
+      "importance_score": 0.0618,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "glob",
+      "version": "0.3",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "indexmap",
+      "version": "2.1",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": [
+        "serde"
+      ]
+    },
+    {
+      "name": "once_cell",
+      "version": "1.18",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "petgraph",
+      "version": "0.6",
+      "usage_count": 1,
+      "importance_score": 0.10000000000000002,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "quote",
+      "version": "1.0",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "ratatui",
+      "version": "0.24",
+      "usage_count": 4,
+      "importance_score": 0.544,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "rayon",
+      "version": "1.8",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "serde",
+      "version": "1.0",
+      "usage_count": 4,
+      "importance_score": 0.34159999999999996,
+      "removable": false,
+      "used_features": [],
+      "unused_features": [
+        "derive"
+      ]
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0",
+      "usage_count": 2,
+      "importance_score": 0.19040000000000004,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "syn",
+      "version": "2.0",
+      "usage_count": 1,
+      "importance_score": 0.136,
+      "removable": true,
+      "used_features": [
+        "visit"
+      ],
+      "unused_features": [
+        "extra-traits",
+        "full"
+      ]
+    },
+    {
+      "name": "thiserror",
+      "version": "1.0",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "toml",
+      "version": "0.8",
+      "usage_count": 2,
+      "importance_score": 0.21920000000000006,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "walkdir",
+      "version": "2.4",
+      "usage_count": 2,
+      "importance_score": 0.16659999999999997,
+      "removable": false,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "pretty_assertions",
+      "version": "1.4",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "tempfile",
+      "version": "3.8",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    },
+    {
+      "name": "test-case",
+      "version": "3.3",
+      "usage_count": 0,
+      "importance_score": 0.0,
+      "removable": true,
+      "used_features": [],
+      "unused_features": []
+    }
+  ]
+}

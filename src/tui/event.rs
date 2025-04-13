@@ -25,6 +25,12 @@ pub struct EventConfig {
     pub tick_rate: Duration,
 }
 
+/// Our own event type
+pub enum Event {
+    Key(KeyEvent),
+    Tick,
+}
+
 impl EventHandler {
     /// Create a new event handler
     pub fn new(config: EventConfig) -> Self {
@@ -64,22 +70,17 @@ impl EventHandler {
     }
     
     /// Wait for the next event
-    pub fn next(&self) -> Result<CrosstermEvent, RecvError> {
-        loop {
-            match self.receiver.recv()? {
-                AppEvent::Input(event) => return Ok(event),
-                AppEvent::Tick => {
-                    // Ignore tick events when waiting for input
+    pub fn next(&self) -> Result<Event, RecvError> {
+        match self.receiver.recv()? {
+            AppEvent::Input(event) => {
+                match event {
+                    CrosstermEvent::Key(key) => Ok(Event::Key(key)),
+                    _ => self.next(), // Ignore other events
                 }
-            }
+            },
+            AppEvent::Tick => Ok(Event::Tick),
         }
     }
-}
-
-/// Extend CrosstermEvent with a Tick variant
-pub enum Event {
-    Key(KeyEvent),
-    Tick,
 }
 
 /// Add Tick variant to CrosstermEvent

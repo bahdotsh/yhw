@@ -1,0 +1,23 @@
+Dependency,Version,Usage Count,Importance Score,Removable
+anyhow,1.0,12,1,false
+clap,4.4,2,0.132,true
+crossterm,0.27,2,0.272,false
+csv,1.3,1,0.0618,true
+dirs,5.0,1,0.0618,true
+glob,0.3,0,0,true
+indexmap,2.1,0,0,true
+once_cell,1.18,0,0,true
+petgraph,0.6,1,0.10000000000000002,false
+proc-macro2,1.0,0,0,true
+quote,1.0,0,0,true
+ratatui,0.24,4,0.544,false
+rayon,1.8,0,0,true
+serde,1.0,4,0.34159999999999996,false
+serde_json,1.0,2,0.19040000000000004,false
+syn,2.0,1,0.136,true
+thiserror,1.0,0,0,true
+toml,0.8,2,0.21920000000000006,false
+walkdir,2.4,2,0.16659999999999997,false
+pretty_assertions,1.4,0,0,true
+tempfile,3.8,0,0,true
+test-case,3.3,0,0,true

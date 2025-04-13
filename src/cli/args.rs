@@ -33,6 +33,10 @@ pub enum Command {
         /// Filter analysis to a specific dependency
         #[arg(short, long)]
         dep: Option<String>,
+        
+        /// Enable dependency graph visualization
+        #[arg(long)]
+        deps: bool,
     },
     
     /// Export dependency analysis to a file

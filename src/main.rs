@@ -36,12 +36,12 @@ fn main() -> Result<()> {
     };
     
     match args.command {
-        Command::Analyze { path, dep } => {
+        Command::Analyze { path, dep, deps } => {
             let path = path.or(config.general.project_dir.clone())
                 .unwrap_or_else(|| std::env::current_dir().expect("Failed to get current directory"));
             
             // Start the TUI application
-            tui::app::run(path, dep)?;
+            tui::app::run(path, dep, deps)?;
         },
         Command::Export { path, output, format, dep } => {
             let path = path.or(config.general.project_dir.clone())

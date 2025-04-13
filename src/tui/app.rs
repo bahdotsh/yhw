@@ -8,7 +8,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
 use crate::analyzer::{DependencyAnalyzer, AnalysisResult};
-use crate::tui::event::{EventHandler, EventConfig};
+use crate::tui::event::{EventHandler, EventConfig, Event as AppEvent};
 use crate::tui::ui;
 
 /// Sort options for dependencies
@@ -93,53 +93,59 @@ impl FilterOption {
     }
 }
 
-/// Main application state
+/// Application state
 pub struct App {
-    /// Path to the project being analyzed
-    pub project_path: PathBuf,
-    /// Optional dependency filter
-    pub filter_dep: Option<String>,
+    /// Path to the project directory
+    project_path: PathBuf,
     /// Analysis results
     pub analysis: Option<AnalysisResult>,
-    /// Currently selected dependency index
-    pub selected_dependency: usize,
-    /// Current tab index
-    pub current_tab: usize,
-    /// Whether the application should exit
+    /// Flag to indicate if the app should quit
     pub should_quit: bool,
-    /// Whether to show help
-    pub show_help: bool,
-    /// Sort option
+    /// Current tab (0: Overview, 1: Details, 2: Removable)
+    pub current_tab: usize,
+    /// Selected dependency index
+    pub selected_dependency: usize,
+    /// Current sort option
     pub sort_option: SortOption,
-    /// Filter option
-    pub filter_option: FilterOption,
     /// Whether to sort in reverse order
     pub sort_reverse: bool,
+    /// Current filter option
+    pub filter_option: FilterOption,
+    /// Filtered dependency name (if any)
+    pub filter_dep: Option<String>,
     /// Search query
     pub search_query: String,
-    /// Whether we're in search mode
+    /// Whether the user is currently searching
     pub is_searching: bool,
+    /// Whether to show the help popup
+    pub show_help: bool,
     /// The current view in detail screen
     pub detail_view: usize,
+    /// Whether to enable dependency graph visualization
+    pub enable_dependency_graph: bool,
+    /// Counter for animations
+    pub tick_count: usize,
 }
 
 impl App {
-    /// Create a new application
+    /// Create a new app instance
     pub fn new(project_path: PathBuf, filter_dep: Option<String>) -> Self {
         Self {
             project_path,
-            filter_dep,
             analysis: None,
-            selected_dependency: 0,
-            current_tab: 0,
             should_quit: false,
-            show_help: false,
+            current_tab: 0,
+            selected_dependency: 0,
             sort_option: SortOption::Name,
-            filter_option: FilterOption::All,
             sort_reverse: false,
+            filter_option: FilterOption::All,
+            filter_dep,
             search_query: String::new(),
             is_searching: false,
+            show_help: false,
             detail_view: 0,
+            enable_dependency_graph: false,
+            tick_count: 0,
         }
     }
     
@@ -342,7 +348,7 @@ impl App {
 }
 
 /// Run the TUI application
-pub fn run(project_path: PathBuf, filter_dep: Option<String>) -> Result<()> {
+pub fn run(project_path: PathBuf, filter_dep: Option<String>, enable_deps: bool) -> Result<()> {
     // Set up terminal
     terminal::enable_raw_mode()?;
     std::io::stdout().execute(EnterAlternateScreen)?;
@@ -354,12 +360,15 @@ pub fn run(project_path: PathBuf, filter_dep: Option<String>) -> Result<()> {
     // Create app state
     let mut app = App::new(project_path, filter_dep);
     
+    // Enable dependency graph visualization if requested
+    app.enable_dependency_graph = enable_deps;
+    
     // Run analysis
     app.run_analysis()?;
     
     // Create event handler
     let event_config = EventConfig {
-        tick_rate: Duration::from_millis(250),
+        tick_rate: Duration::from_millis(100), // Faster ticks for smoother animations
     };
     let event_handler = EventHandler::new(event_config);
     
@@ -370,8 +379,11 @@ pub fn run(project_path: PathBuf, filter_dep: Option<String>) -> Result<()> {
         
         // Handle events
         match event_handler.next()? {
-            Event::Key(key_event) => app.handle_key_event(key_event),
-            _ => {}
+            AppEvent::Key(key_event) => app.handle_key_event(key_event),
+            AppEvent::Tick => {
+                // Increment tick counter for animations
+                app.tick_count = app.tick_count.wrapping_add(1);
+            }
         }
     }
     
