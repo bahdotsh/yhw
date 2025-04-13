@@ -60,125 +60,79 @@ impl RustAnalyzer {
         let file_content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {:?}", file_path))?;
         
-        // Parse the file to an AST
-        let syntax = syn::parse_file(&file_content)
-            .with_context(|| format!("Failed to parse Rust file: {:?}", file_path))?;
+        // Simple approach: look for use statements and extern crate statements in the file
+        // For a more complete solution, we would parse the file to an AST and use a visitor
+        // But for Phase 1, this simplified approach should be sufficient
         
-        // Create a visitor to find usages
-        let mut visitor = DependencyVisitor::new(file_path, dependencies);
-        visitor.visit_file(&syntax);
-        
-        // Update usage data with findings
-        for (dep_name, usages) in visitor.usages {
-            if let Some(dep_usages) = usage_data.usage_locations.get_mut(&dep_name) {
-                dep_usages.extend(usages);
+        // Track line numbers
+        for (line_number, line) in file_content.lines().enumerate() {
+            // Check for use statements
+            if line.trim().starts_with("use ") {
+                self.process_use_statement(line, line_number + 1, file_path, dependencies, usage_data);
+            }
+            
+            // Check for extern crate statements
+            if line.trim().starts_with("extern crate ") {
+                self.process_extern_crate(line, line_number + 1, file_path, dependencies, usage_data);
             }
         }
         
         Ok(())
     }
-}
-
-/// Visitor for traversing Rust syntax trees and finding dependency usages
-struct DependencyVisitor<'a> {
-    file_path: &'a Path,
-    dependencies: &'a [CargoDependency],
-    usages: HashMap<String, Vec<DependencyUsage>>,
-}
-
-impl<'a> DependencyVisitor<'a> {
-    fn new(file_path: &'a Path, dependencies: &'a [CargoDependency]) -> Self {
-        Self {
-            file_path,
-            dependencies,
-            usages: HashMap::new(),
-        }
-    }
     
-    fn add_usage(&mut self, dep_name: String, usage: DependencyUsage) {
-        self.usages.entry(dep_name).or_insert_with(Vec::new).push(usage);
-    }
-    
-    fn find_dependency(&self, path: &syn::Path) -> Option<&CargoDependency> {
-        if let Some(first_segment) = path.segments.first() {
-            let name = first_segment.ident.to_string();
-            self.dependencies.iter().find(|dep| dep.name == name)
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a, 'ast> Visit<'ast> for DependencyVisitor<'a> {
-    fn visit_use_path(&mut self, use_path: &'ast syn::UsePath) {
-        if let Some(dep) = self.find_dependency(&use_path.path) {
-            let line = use_path.path.span().start().line;
-            let imported_item = use_path.path.segments.iter()
-                .map(|seg| seg.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::");
-            
-            self.add_usage(
-                dep.name.clone(),
-                DependencyUsage {
-                    file: self.file_path.to_path_buf(),
-                    line,
-                    imported_item,
-                    usage_type: UsageType::Import,
-                },
-            );
-        }
+    /// Process a use statement to find dependency usages
+    fn process_use_statement(
+        &self,
+        line: &str, 
+        line_number: usize, 
+        file_path: &Path,
+        dependencies: &[CargoDependency],
+        usage_data: &mut DependencyUsageData,
+    ) {
+        // Extract the first part of the use statement
+        let line = line.trim().trim_start_matches("use ");
+        let first_part = line.split("::").next().unwrap_or("");
         
-        // Continue visiting the rest of the tree
-        visit::visit_use_path(self, use_path);
-    }
-    
-    fn visit_item_extern_crate(&mut self, extern_crate: &'ast syn::ItemExternCrate) {
-        let crate_name = extern_crate.ident.to_string();
-        if let Some(dep) = self.dependencies.iter().find(|dep| dep.name == crate_name) {
-            let line = extern_crate.span().start().line;
-            
-            self.add_usage(
-                dep.name.clone(),
-                DependencyUsage {
-                    file: self.file_path.to_path_buf(),
-                    line,
-                    imported_item: crate_name,
-                    usage_type: UsageType::Import,
-                },
-            );
-        }
-        
-        visit::visit_item_extern_crate(self, extern_crate);
-    }
-    
-    fn visit_macro(&mut self, mac: &'ast syn::Macro) {
-        if let Some(path_segment) = mac.path.segments.first() {
-            let macro_name = path_segment.ident.to_string();
-            
-            // Check if this macro comes from one of our dependencies
-            // This is a simplification - in practice, tracking macro usage to dependencies is complex
-            for dep in self.dependencies {
-                // Simple heuristic: if the macro name starts with the dependency name, it's likely from that dependency
-                if macro_name.starts_with(&dep.name) || macro_name.contains(&dep.name) {
-                    let line = mac.path.span().start().line;
-                    
-                    self.add_usage(
-                        dep.name.clone(),
-                        DependencyUsage {
-                            file: self.file_path.to_path_buf(),
-                            line,
-                            imported_item: macro_name,
-                            usage_type: UsageType::Macro,
-                        },
-                    );
-                    break;
+        // Check if this matches a dependency
+        for dep in dependencies {
+            if first_part == dep.name {
+                if let Some(usages) = usage_data.usage_locations.get_mut(&dep.name) {
+                    usages.push(DependencyUsage {
+                        file: file_path.to_path_buf(),
+                        line: line_number,
+                        imported_item: line.trim_end_matches(';').to_owned(),
+                        usage_type: UsageType::Import,
+                    });
                 }
             }
         }
-        
-        visit::visit_macro(self, mac);
     }
     
-    // Additional visit methods can be implemented to track other types of usage
+    /// Process an extern crate statement to find dependency usages
+    fn process_extern_crate(
+        &self,
+        line: &str, 
+        line_number: usize, 
+        file_path: &Path,
+        dependencies: &[CargoDependency],
+        usage_data: &mut DependencyUsageData,
+    ) {
+        // Extract the crate name
+        let line = line.trim().trim_start_matches("extern crate ");
+        let crate_name = line.split_whitespace().next().unwrap_or("").trim_end_matches(';');
+        
+        // Check if this matches a dependency
+        for dep in dependencies {
+            if crate_name == dep.name {
+                if let Some(usages) = usage_data.usage_locations.get_mut(&dep.name) {
+                    usages.push(DependencyUsage {
+                        file: file_path.to_path_buf(),
+                        line: line_number,
+                        imported_item: crate_name.to_owned(),
+                        usage_type: UsageType::Import,
+                    });
+                }
+            }
+        }
+    }
 } 

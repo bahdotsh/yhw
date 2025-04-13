@@ -49,16 +49,9 @@ impl DependencyAnalyzer {
     }
     
     fn parse_manifest(&self, manifest_path: &Path) -> Result<Vec<CargoDependency>> {
-        use crate::manifest::{get_parser, ManifestParser};
+        use crate::manifest;
         
-        let parser = get_parser(manifest_path)?;
-        // We need to cast the returned dependencies to the concrete type
-        // This is a limitation of using trait objects with associated types
-        let deps = parser.parse(manifest_path)?;
-        
-        Ok(deps.into_iter()
-            .map(|dep| dep)
-            .collect())
+        manifest::parse_dependencies(manifest_path)
     }
     
     fn analyze_code(&self, dependencies: &[CargoDependency]) -> Result<DependencyUsageData> {
@@ -98,7 +91,7 @@ pub struct DependencyUsage {
 }
 
 /// Type of dependency usage
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UsageType {
     Import,
     Function,

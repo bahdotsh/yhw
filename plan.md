@@ -241,13 +241,13 @@ src/
 
 ## Progress Tracking
 
-- [ ] Phase 1 completed
+- [x] Phase 1 completed
   - [x] Project setup
-  - [ ] Basic CLI interface with clap
-  - [ ] Cargo.toml parser
-  - [ ] File system traversal
-  - [ ] Basic Rust code parsing for imports 
-  - [ ] Simple dependency usage detection
+  - [x] Basic CLI interface with clap
+  - [x] Cargo.toml parser
+  - [x] File system traversal
+  - [x] Basic Rust code parsing for imports 
+  - [x] Simple dependency usage detection
 - [ ] Phase 2 completed
 - [ ] Phase 3 completed
 - [ ] Phase 4 completed
@@ -259,11 +259,11 @@ src/
 - [x] Create initial project files (README.md, plan.md)
 - [x] Create module structure (analyzer, cli, manifest, tui, utils)
 - [x] Implement basic CLI argument handling
-- [ ] Complete Cargo.toml manifest parser
-- [ ] Complete Rust code analyzer
-- [ ] Fix linter errors in existing code
-- [ ] Implement simple TUI with ratatui
-- [ ] Add tests for core functionality
+- [x] Complete Cargo.toml manifest parser
+- [x] Complete Rust code analyzer
+- [x] Fix linter errors in existing code
+- [x] Implement simple TUI with ratatui
+- [x] Add tests for core functionality
 
 ## Notes and Considerations
 

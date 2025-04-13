@@ -13,7 +13,8 @@ pub fn calculate_metrics(
     
     // Calculate usage metrics
     for dep in dependencies {
-        let usages = usage_data.usage_locations.get(&dep.name).unwrap_or(&Vec::new());
+        let empty_vec = Vec::new();
+        let usages = usage_data.usage_locations.get(&dep.name).unwrap_or(&empty_vec);
         let is_used = !usages.is_empty();
         
         // Count unique files where the dependency is used
