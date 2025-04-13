@@ -27,6 +27,12 @@ pub enum DependencyType {
     Build,
 }
 
+/// Parse a Cargo.toml file and return the dependencies
+pub fn parse_cargo_toml<P: AsRef<Path>>(project_path: P) -> Result<Vec<CargoDependency>> {
+    let manifest_path = project_path.as_ref().join("Cargo.toml");
+    CargoParser::parse(manifest_path)
+}
+
 impl ManifestParser for CargoParser {
     type Dependency = CargoDependency;
     

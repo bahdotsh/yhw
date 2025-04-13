@@ -5,10 +5,35 @@ pub mod dependency_graph;
 use std::path::{Path, PathBuf};
 use anyhow::Result;
 use crate::manifest::cargo::CargoDependency;
+use serde::Serialize;
 
 /// Main analyzer that orchestrates the analysis process
 pub struct DependencyAnalyzer {
     project_path: PathBuf,
+}
+
+// Structure to represent an analyzed dependency with all relevant metrics
+#[derive(Debug, Clone, Serialize)]
+pub struct AnalyzedDependency {
+    pub name: String,
+    pub version: String,
+    pub usage_count: usize,
+    pub importance_score: f64,
+    pub removable: bool,
+    pub used_features: Vec<String>,
+    pub unused_features: Vec<String>,
+}
+
+/// Analysis result that will be returned to the main function and can be exported
+#[derive(Debug, Serialize)]
+pub struct Analysis {
+    pub dependencies: Vec<AnalyzedDependency>,
+}
+
+impl Analysis {
+    pub fn filter_dependency(&mut self, dep_name: &str) {
+        self.dependencies.retain(|dep| dep.name == dep_name);
+    }
 }
 
 impl DependencyAnalyzer {
@@ -136,4 +161,47 @@ pub struct DependencyMetrics {
     pub is_partially_used: std::collections::HashMap<String, bool>,
     /// List of dependencies that could potentially be removed
     pub removable_dependencies: Vec<String>,
+}
+
+/// Analyze a project and return a simplified representation for export
+pub fn analyze<P: AsRef<Path>>(project_path: P, manifest: &[CargoDependency]) -> Result<Analysis> {
+    let analyzer = DependencyAnalyzer::new(project_path);
+    let analysis_result = analyzer.analyze()?;
+    
+    // Create analyzed dependencies by combining data from the analysis result
+    let dependencies = manifest.iter()
+        .map(|dep| {
+            let name = &dep.name;
+            let version = dep.version.clone().unwrap_or_else(|| "".to_string());
+            let usage_count = *analysis_result.metrics.usage_count.get(name).unwrap_or(&0);
+            let importance_score = *analysis_result.metrics.importance_scores.get(name).unwrap_or(&0.0);
+            let removable = analysis_result.metrics.removable_dependencies.contains(name);
+            
+            // Extract used and unused features
+            let mut used_features = Vec::new();
+            let mut unused_features = Vec::new();
+            
+            if let Some(feature_map) = analysis_result.metrics.feature_usage.get(name) {
+                for (feature, is_used) in feature_map {
+                    if *is_used {
+                        used_features.push(feature.clone());
+                    } else {
+                        unused_features.push(feature.clone());
+                    }
+                }
+            }
+            
+            AnalyzedDependency {
+                name: name.clone(),
+                version,
+                usage_count,
+                importance_score,
+                removable,
+                used_features,
+                unused_features,
+            }
+        })
+        .collect();
+    
+    Ok(Analysis { dependencies })
 } 
